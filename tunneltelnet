@@ -20,7 +20,7 @@ CONFIG_FILE=~/.tunneltelnet
 source $CONFIG_FILE
 
 function check_tunnel {
-	PROC=`ps aux | grep "ssh -ND $PROXYPORT $REMOTESERVER | grep -v grep"`
+	PROC=`ps aux | grep "[s]sh -ND $PROXYPORT $REMOTESERVER"`
 	if [[ "$PROC" == "" ]]; then
 		echo "SSH tunnel is down! Starting tunnel through $REMOTESERVER..."
 		nohup ssh -ND $PROXYPORT $REMOTESERVER >/dev/null &
