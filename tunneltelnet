@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# tunneltelnet 0.1
+# This script sets up an SSH tunnel and proxies a telnet session through that tunnel,
+# to enable a network administrator to reach network devices without having to SSH
+# into a network management server first. This enables remote scripting and simple
+# management from a computer outside of the management network.
+# The script utilizes dig to first resolve DNS names remotely by iterating through a
+# list of DNS search domains. This is useful when having multiple domains used in the
+# management network, since the /etc/resolv.conf of the remote server won't be used
+# by the local dig.
+
+# Nonstandard requirements:
+# - expect
+# - proxychains >= 4.2.0 (https://github.com/haad/proxychains)
+
+# SSH should be set up with public key authrorization to the remote server.
+
+#########################################
+# Configuration:
+# Change this into what is needed for your network.
+PROXYPORT=46001
+REMOTEDNS=10.0.0.1
+REMOTESERVER=mgmt.local
+declare -a DOMAINLIST=(net.example.net mgmt.example.net box.example.net)
+PROXYCHAINS_CONFIG=./proxychains.conf
+#########################################
+
+function check_tunnel {
+	PROC=`ps aux | grep "ssh -ND $PROXYPORT $REMOTESERVER | grep -v grep"`
+	if [[ "$PROC" == "" ]]; then
+		echo "SSH tunnel is down! Starting tunnel through $REMOTESERVER..."
+		nohup ssh -ND $PROXYPORT $REMOTESERVER >/dev/null &
+		echo "Waiting for connection to establish..."
+		sleep 5
+		check_tunnel
+	else
+		echo "SSH tunnel is up!"
+	fi
+}
+
+check_tunnel
+
+for domain in "${DOMAINLIST[@]}"; do
+	#echo "Trying to resolve DNS using domain ${domain}"
+
+	IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1 +domain=${domain} +search +tcp +short`
+
+	if [ ! -z "$IP" ]; then
+		expect -c "
+			spawn -noecho proxychains4 -f $PROXYCHAINS_CONFIG -q telnet $IP
+			interact {
+				\177		{send \"\010\"}
+				\"\033\[3~\"	{send \"\177\"}
+			}
+		"
+		exit
+	fi
+done
