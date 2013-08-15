@@ -1,0 +1,6 @@
+#!/bin/sh
+
+cp tunneltelnet ~/.bin/tunneltelnet
+cp tunneltelnet.conf ~/.tunneltelnet
+cp example.proxychains.conf ~/.proxychains.conf
+
