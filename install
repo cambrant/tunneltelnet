@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# This works for anyone having a ~/.bin, but is mostly used to suit my environment.
+# You should install this manually instead.
+
 cp tunneltelnet ~/.bin/tunneltelnet
 cp tunneltelnet.conf ~/.tunneltelnet
 cp example.proxychains.conf ~/.proxychains.conf

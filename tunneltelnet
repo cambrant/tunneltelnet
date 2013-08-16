@@ -19,9 +19,8 @@
 CONFIG_FILE=~/.tunneltelnet
 source $CONFIG_FILE
 
-function check_tunnel {
-	PROC=`ps aux | grep "[s]sh -ND $PROXYPORT $REMOTESERVER"`
-	if [[ "$PROC" == "" ]]; then
+check_tunnel () {
+	if [ -z "`ps aux | grep "[s]sh -ND $PROXYPORT $REMOTESERVER"`" ]; then
 		echo "SSH tunnel is down! Starting tunnel through $REMOTESERVER..."
 		nohup ssh -ND $PROXYPORT $REMOTESERVER >/dev/null &
 		echo "Waiting for connection to establish..."
@@ -32,14 +31,15 @@ function check_tunnel {
 	fi
 }
 
-function connect {
+connect () {
+	# This expect block also makes backspace work on devices which require Ctrl-H
 	expect -c "
 			spawn -noecho proxychains4 -f $PROXYCHAINS_CONFIG -q telnet $IP
 			interact {
 				\177			{send \"\010\"}
 				\"\033\[3~\"	{send \"\177\"}
 			}
-		"
+	"
 }
 
 if [ ! -n "$1" ]; then
@@ -49,26 +49,31 @@ fi
 
 check_tunnel
 
-# Is the host argument an IP-address?
-#echo $1 | grep '\(25[0-5]\|2[0-4][0-9]\|[01][0-9][0-9]\|[0-9][0-9]\)\.\(25[0-5]\|2[0-4][0-9]\|[01][0-9][0-9]\|[0-9][0-9]\)\.\(25[0-5]\|2[0-4][0-9]\|[01][0-9][0-9]\|[0-9][0-9]\)\.\(25[0-5]\|2[0-4][0-9]\|[01][0-9][0-9]\|[0-9][0-9]\)'
-echo $1 | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*'
+# Is the host argument an IP-address? We don't care about getting fancy with the regexps.
+echo $1 | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' > /dev/null
 if [[ $? == 0 ]]; then
 	IP=$1
 	connect
 else
-	HOST=$1
 	for domain in "${DOMAINLIST[@]}"; do
-		#echo "Trying to resolve DNS using domain ${domain}"
+		# echo "Trying to resolve DNS using domain ${domain}"
 		if [[ "$IP" == "" ]]; then
-			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $HOST +domain=${domain} +search +tcp +short`
+			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1 +domain=${domain} +search +tcp +short`
 		else
-			connect
+			# In some cases, dig will return several IP:s. Work around this.
+			echo $IP | grep '\ ' > /dev/null
+			if [[ $? == 0 ]]; then
+				echo "Hostname $1 resolves to multiple IP numbers: $IP"
+			fi
+
+			IP=`echo $IP | sed 's/\ .*//'`
+			connect 
+
 			exit
 		fi
 	done
 
 	if [[ "$IP" == "" ]]; then
 		echo "Host unreachable."
-		exit
 	fi
 fi
