@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# This works for anyone having a ~/.bin, but is mostly used to suit my environment.
-# You should install this manually instead.
+# This works for anyone having a ~/.bin/, but is mostly made to suit my environment.
+# For now, you should install this manually instead.
 
 cp tunneltelnet ~/.bin/tunneltelnet
 cp tunneltelnet.conf ~/.tunneltelnet
 cp example.proxychains.conf ~/.proxychains.conf
-
+mkdir ~/.tunneltelnet_logs
