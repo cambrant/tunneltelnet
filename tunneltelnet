@@ -17,11 +17,6 @@
 # SSH should be set up with public key authrorization to the remote server.
 
 CONFIG_FILE=~/.tunneltelnet
-RANDOM_STRING=`date +%s | sha256sum | base64 | head -c 5`
-TIME=`date +"%Y-%m-%d-%H%M"`
-LOG_FILE=~/.tunneltelnet_logs/
-LOG_FILE+=$TIME
-LOG_FILE+=_$RANDOM_STRING.log
 source $CONFIG_FILE
 
 check_tunnel () {
@@ -51,6 +46,11 @@ if [ ! -n "$1" ]; then
 	echo "Usage: `basename $0` <host>"
 	exit
 fi
+
+RANDOM_STRING=`date +%s | sha256sum | base64 | head -c 5`
+TIME=`date +"%Y-%m-%d-%H%M"`
+LOG_FILE=$LOG_DIRECTORY/$USER-$TIME
+LOG_FILE+=_$1_$RANDOM_STRING.log
 
 check_tunnel
 
