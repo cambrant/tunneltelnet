@@ -4,6 +4,7 @@
 # For now, you should install this manually instead.
 
 cp tunneltelnet ~/.bin/tunneltelnet
+cp tstee ~/.bin/tstee
 cp tunneltelnet.conf ~/.tunneltelnet
 cp example.proxychains.conf ~/.proxychains.conf
 mkdir ~/.tunneltelnet_logs
