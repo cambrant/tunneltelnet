@@ -34,12 +34,12 @@ check_tunnel () {
 connect () {
 	# This also makes backspace work on devices that wants Ctrl-H
 	expect -c "
-		spawn -noecho script -a -q -c \"proxychains4 -f $PROXYCHAINS_CONFIG -q telnet $IP\" $LOG_FILE
+		spawn -noecho proxychains4 -q -f $PROXYCHAINS_CONFIG telnet $IP
 		interact {
 			\177			{send \"\010\"}
 			\"\033\[3~\"	{send \"\177\"}
 		}
-	"
+	" | tee $LOG_FILE
 }
 
 if [ -z "$1" ]; then
