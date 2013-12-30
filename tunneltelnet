@@ -5,7 +5,7 @@
 # tunnel, to enable a network administrator to reach network devices without
 # having to SSH into a network management server first. This enables remote
 # scripting and simple management from a computer outside of the management
-# network. The script utilizes dig to first resolve DNS names remotely by
+# network. Tunneltelnet utilizes dig to first resolve DNS names remotely by
 # iterating through a list of DNS search domains. This is useful when having
 # multiple domains used in the management network, since the /etc/resolv.conf
 # of the remote server won't be used by the local dig.
@@ -40,6 +40,9 @@ connect () {
 			\"\033\[3~\"	{send \"\177\"}
 		}
 	" | tee $LOG_FILE
+		# Instead of using tee here, I want to maybe write a helper program which
+		# does what tee does but also appends a timestamp to the file output, but
+		# not to stdout.
 }
 
 if [ -z "$1" ]; then
