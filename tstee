@@ -7,8 +7,10 @@ outputfile = sys.argv[1]
 of = open(outputfile, "w")
 
 while True:
-	input_data = sys.stdin.readline()
+	input_data = sys.stdin.read(1)
 	if input_data:
+		if '\n' in input_data:
+			print 'newline: ' + input_data
 		timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S: ')
 		of.write(timestamp + input_data)
 		sys.stdout.write(input_data)

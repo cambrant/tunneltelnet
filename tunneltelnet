@@ -39,10 +39,7 @@ connect () {
 			\177			{send \"\010\"}
 			\"\033\[3~\"	{send \"\177\"}
 		}
-	" | tstee $LOG_FILE
-		# Instead of using tee here, I want to maybe write a helper program which
-		# does what tee does but also appends a timestamp to the file output, but
-		# not to stdout.
+	" | ./tstee $LOG_FILE
 }
 
 if [ -z "$1" ]; then
