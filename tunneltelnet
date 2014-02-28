@@ -61,7 +61,7 @@ if [[ $? == 0 ]]; then
 	connect
 else
 	for domain in "${DOMAINLIST[@]}"; do
-		# echo "Trying to resolve DNS using domain ${domain}"
+		# Resolve DNS name
 		if [ "$IP" == "" ]; then
 			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1 +domain=${domain} +search +tcp +short`
 		else
