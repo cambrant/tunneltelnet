@@ -39,7 +39,7 @@ connect () {
 			\177			{send \"\010\"}
 			\"\033\[3~\"	{send \"\177\"}
 		}
-	" | ./tstee $LOG_FILE
+	" | tstee $LOG_FILE
 }
 
 if [ -z "$1" ]; then
