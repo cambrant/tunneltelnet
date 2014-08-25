@@ -54,16 +54,15 @@ LOG_FILE+=_$1_$RANDOM_STRING.log
 
 check_tunnel
 
-# Is the host argument an IP-address? Lets not bother with fancy regexps.
-echo $1 | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' > /dev/null
-if [[ $? == 0 ]]; then
+# Is the host argument an IP-address? Let's not bother with fancy regexps.
+if echo $1 | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
 	IP=$1
 	connect
 else
 	for domain in "${DOMAINLIST[@]}"; do
 		# Resolve DNS name
 		if [ "$IP" == "" ]; then
-			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1 +domain=${domain} +search +tcp +short`
+			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1.${domain} +search +tcp +short`
 		else
 			# In some cases, dig will return several IP:s. Work around this by
 			# echoing them all and then connecting only to the first one.
@@ -74,7 +73,7 @@ else
 			fi
 
 			IP=`echo $IP | sed 's/\ .*//'`
-			connect 
+			connect
 
 			exit
 		fi
