@@ -12,9 +12,9 @@
 
 # Nonstandard requirements:
 # - expect
-# - proxychains >= 4.2.0 (https://github.com/haad/proxychains)
+# - proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
 
-# SSH should be set up with public key authrorization to the remote server.
+# SSH should be set up with public key authentication to the remote server.
 
 CONFIG_FILE=~/.tunneltelnet
 source $CONFIG_FILE
