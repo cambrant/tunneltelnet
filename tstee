@@ -3,20 +3,29 @@
 import sys
 import datetime
 
+if len(sys.argv) is not 2:
+    print 'Usage:', sys.argv[0], '<output file>'
+    sys.exit(1)
+
 outputfile = sys.argv[1]
-of = open(outputfile, "w")
+try:
+    of = open(outputfile, "w")
+except:
+    print 'Error: Could not open file!'
+    sys.exit(1)
 
 while True:
-	input_data = sys.stdin.read(1)
-	if input_data:
-		if input_data == '\n':
-			timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S|')
-			of.write(input_data + timestamp)
-		else:
-			of.write(input_data)
-		sys.stdout.write(input_data)
-		sys.stdout.flush()
-	else:
-		break
+    input_data = sys.stdin.read(1)
+    if input_data:
+        if input_data == '\n':
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S|')
+            of.write(input_data + timestamp)
+        else:
+            of.write(input_data)
+
+        sys.stdout.write(input_data)
+        sys.stdout.flush()
+    else:
+        break
 
 of.close()
