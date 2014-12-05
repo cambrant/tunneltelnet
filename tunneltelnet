@@ -17,7 +17,12 @@
 # SSH should be set up with public key authentication to the remote server.
 
 CONFIG_FILE=~/.tunneltelnet
-source $CONFIG_FILE
+if [ -e $CONFIG_FILE ]; then
+    source $CONFIG_FILE
+else
+    echo "No config file available at $CONFIG_FILE!"
+    exit
+fi
 
 check_tunnel () {
 	if [ -z "`ps aux | grep "[s]sh -ND $PROXYPORT $REMOTESERVER"`" ]; then
