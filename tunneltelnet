@@ -25,7 +25,7 @@ else
 fi
 
 check_tunnel () {
-	if [ -z "`ps aux | grep "[s]sh -ND $PROXYPORT $REMOTESERVER"`" ]; then
+	if [ -z "`ps aux | egrep "[s]sh.*-ND $PROXYPORT $REMOTESERVER"`" ]; then
 		echo "SSH tunnel is down. Connecting to $REMOTESERVER..."
 		nohup ssh -ND $PROXYPORT $REMOTESERVER >/dev/null &
 		echo "Waiting for SSH connection to establish..."
