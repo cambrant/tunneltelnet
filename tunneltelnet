@@ -35,6 +35,10 @@ class TunnelTelnet():
         self.log_directory = os.path.expanduser(config.log_directory)
 
     def check_tunnel(self):
+        # For each running process, check if it's the SSH tunnel specified in
+        # the tunneltelnet configuration file and return True if it is.
+        # Otherwise, launch a new instance of the SSH tunnel and recursively use
+        # this function again to make sure it is running.
         pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
 
         for pid in pids:
@@ -68,6 +72,8 @@ class TunnelTelnet():
             return False
 
     def resolve(self, host):
+        # Resolve the passed hostname into an IP address, using the DNS tools
+        # on the remote server to do it.
         if self.is_ip(host):
             # User already provided an IP address. Connect to that.
             return host
