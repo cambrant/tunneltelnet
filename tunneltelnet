@@ -15,6 +15,8 @@ from IPy import IP
 
 class TunnelTelnet():
     def __init__(self):
+        self.username = None
+        self.password = None
         self.CONFIG_FILE = os.path.expanduser('~/.tunneltelnet')
         self.read_config()
 
@@ -102,15 +104,36 @@ class TunnelTelnet():
         p = pexpect.spawn('proxychains4 -q -f %s telnet %s' %
                 (self.proxychains_config, ip))
         p.timeout = 30
+
+        if self.username and self.password:
+            try:
+                p.expect(':')
+                p.sendline(self.username)
+                p.expect('word:')
+                p.sendline(self.password)
+                p.expect('')
+            except:
+                msg = p.before.split('\r\n')
+                if len(msg) > 1:
+                    for line in msg:
+                        print line
+                p.close()
+                sys.exit()
+
         p.interact(input_filter=self.filter_input_keys,
             output_filter=self.filter_output_keys)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print 'Usage: %s <host>' % sys.argv[0]
+        print 'Usage: %s <host> [username] [password]' % sys.argv[0]
         sys.exit()
 
     tt = TunnelTelnet()
+
+    if len(sys.argv) == 4:
+        tt.username = sys.argv[2]
+        tt.password = sys.argv[3]
+
     tt.check_tunnel()
     ip = tt.resolve(sys.argv[1])
     if ip:
