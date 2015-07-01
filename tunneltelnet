@@ -1,95 +1,119 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-# tunneltelnet 0.1
-# This script sets up an SSH tunnel and proxies a telnet session through that
-# tunnel, to enable a network administrator to reach network devices without
-# having to SSH into a network management server first. This enables remote
-# scripting and simple management from a computer outside of the management
-# network. Tunneltelnet utilizes dig to first resolve DNS names remotely by
-# iterating through a list of DNS search domains. This is useful when having
-# multiple domains used in the management network, since the /etc/resolv.conf
-# of the remote server won't be used by the local dig.
+import imp
+import sys
+import os
+import time
+import subprocess
+import pexpect
+from IPy import IP
 
-# Nonstandard requirements:
-# - expect
-# - proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
+# Workaround to import tstee without it being a proper Python module.
+# imp.load_source('tstee', './tstee')
+# import tstee
 
-# SSH should be set up with public key authentication to the remote server.
 
-CONFIG_FILE=~/.tunneltelnet
-if [ -e $CONFIG_FILE ]; then
-    source $CONFIG_FILE
-else
-    echo "No config file available at $CONFIG_FILE!"
-    exit
-fi
+class TunnelTelnet():
+    def __init__(self):
+        self.CONFIG_FILE = os.path.expanduser('~/.tunneltelnet')
+        self.read_config()
 
-check_tunnel () {
-	if [ -z "`ps aux | egrep "[s]sh.*-ND $PROXYPORT $REMOTESERVER"`" ]; then
-		echo "SSH tunnel is down. Connecting to $REMOTESERVER..."
-		nohup ssh -ND $PROXYPORT $REMOTESERVER >/dev/null &
-		echo "Waiting for SSH connection to establish..."
-		sleep 5
-		check_tunnel
-	else
-		echo "SSH tunnel is active."
-	fi
-}
+    def read_config(self):
+        # Load the Python formatted config file and import its data.
+        if not os.path.isfile(self.CONFIG_FILE):
+            raise Exception('Configuration file does not exist.')
+        imp.load_source('config', self.CONFIG_FILE)
+        import config
 
-connect () {
-	# This also makes backspace work on devices that wants Ctrl-H
-	expect -c "
-		spawn -noecho proxychains4 -q -f $PROXYCHAINS_CONFIG telnet $IP
-		interact {
-			\177			{send \"\010\"}
-			\"\033\[3~\"	{send \"\177\"}
-		}
-	" | tstee $LOG_FILE
-}
+        self.proxyport = config.proxyport
+        self.remotedns = config.remotedns
+        self.remoteserver = config.remoteserver
+        self.domainlist = config.domainlist
+        self.proxychains_config = os.path.expanduser(config.proxychains_config)
+        self.log_directory = os.path.expanduser(config.log_directory)
 
-if [ -z "$1" ]; then
-	echo "Usage: `basename $0` <host>"
-	exit
-fi
+    def check_tunnel(self):
+        pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
 
-RANDOM_STRING=`date +%s | sha256sum | base64 | head -c 5`
-TIME=`date +"%Y-%m-%d-%H%M"`
+        for pid in pids:
+            try:
+                cmdline = open(os.path.join('/proc', pid, 'cmdline'),
+                    'rb').read()
+                if 'ssh' in cmdline and self.proxyport in cmdline and \
+                        self.remoteserver in cmdline:
+                    print 'SSH tunnel is up.'
+                    return True
+            except IOError:
+                continue
 
-if [ ! -d "$LOG_DIRECTORY" ]; then
-    mkdir -p $LOG_DIRECTORY
-fi
+        # Launch tunnel
+        print 'SSH tunnel is down. Connecting to %s...' % self.remoteserver
 
-LOG_FILE=$LOG_DIRECTORY/$USER-$TIME
-LOG_FILE+=_$1_$RANDOM_STRING.log
+        subprocess.Popen(['nohup', 'ssh', '-ND', self.proxyport,
+            self.remoteserver], stdout=open('/dev/null', 'w'),
+            stderr=open('/dev/null', 'w'))
 
-check_tunnel
+        print 'Waiting for SSH connection to establish...'
+        time.sleep(5)
+        # Recursively keep trying until the tunnel connection succeeds.
+        return self.check_tunnel()
 
-# Is the host argument an IP-address? Let's not bother with fancy regexps.
-if echo $1 | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
-	IP=$1
-	connect
-else
-	for domain in "${DOMAINLIST[@]}"; do
-		# Resolve DNS name
-		if [ "$IP" == "" ]; then
-			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1.${domain} +search +tcp +short`
-		else
-			# In some cases, dig will return several IP:s. Work around this by
-			# echoing them all and then connecting only to the first one.
-			echo $IP | grep '\ ' > /dev/null
-			if [ $? -eq 0 ]; then
-				echo "Hostname $1 resolves to multiple IP numbers: $IP"
-				exit
-			fi
+    def is_ip(self, ip):
+        try:
+            IP(ip)
+            return ip
+        except:
+            return False
 
-			IP=`echo $IP | sed 's/\ .*//'`
-			connect
+    def resolve(self, host):
+        if self.is_ip(host):
+            # User already provided an IP address. Connect to that.
+            return host
 
-			exit
-		fi
-	done
+        # Iterate through each domain and use 'dig' on the remote host to find
+        # the IP address of the host.
+        for domain in self.domainlist:
+            ip = subprocess.check_output(['proxychains4', '-f',
+                self.proxychains_config, '-q', 'dig', '@%s' % self.remotedns,
+                'A', '%s.%s' % (host, domain), '+search', '+tcp', '+short'])
+            ip = ip.strip()
+            if ip:
+                if self.is_ip(ip):
+                    return ip
+                else:
+                    print 'Error! Something wrong with the returned IP \
+                        address:'
+                    print ip
+                    return False
 
-	if [ -z "$IP" ]; then
-		echo "Host unreachable."
-	fi
-fi
+    def filter_input_keys(self, key):
+        # Send CTRL-h instead of <backspace>, to make backspacing in
+        # certain CLIs work better.
+        if len(key) == 1:
+            if ord(key) == 127:
+                key = chr(8)
+
+        return key
+
+    def filter_output_keys(self, key):
+        return key
+
+    def connect(self, ip):
+        p = pexpect.spawn('proxychains4 -q -f %s telnet %s' %
+                (self.proxychains_config, ip))
+        p.timeout = 30
+        p.interact(input_filter=self.filter_input_keys,
+            output_filter=self.filter_output_keys)
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print 'Usage: %s <host>' % sys.argv[0]
+        sys.exit()
+
+    tt = TunnelTelnet()
+    tt.check_tunnel()
+    ip = tt.resolve(sys.argv[1])
+    if ip:
+        tt.connect(ip)
+    else:
+        print 'Could not find host %s.' % sys.argv[1]

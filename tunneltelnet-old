@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+# tunneltelnet 0.1
+# This script sets up an SSH tunnel and proxies a telnet session through that
+# tunnel, to enable a network administrator to reach network devices without
+# having to SSH into a network management server first. This enables remote
+# scripting and simple management from a computer outside of the management
+# network. Tunneltelnet utilizes dig to first resolve DNS names remotely by
+# iterating through a list of DNS search domains. This is useful when having
+# multiple domains used in the management network, since the /etc/resolv.conf
+# of the remote server won't be used by the local dig.
+
+# Nonstandard requirements:
+# - expect
+# - proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
+
+# SSH should be set up with public key authentication to the remote server.
+
+CONFIG_FILE=~/.tunneltelnet
+if [ -e $CONFIG_FILE ]; then
+    source $CONFIG_FILE
+else
+    echo "No config file available at $CONFIG_FILE!"
+    exit
+fi
+
+check_tunnel () {
+	if [ -z "`ps aux | egrep "[s]sh.*-ND $PROXYPORT $REMOTESERVER"`" ]; then
+		echo "SSH tunnel is down. Connecting to $REMOTESERVER..."
+		nohup ssh -ND $PROXYPORT $REMOTESERVER >/dev/null &
+		echo "Waiting for SSH connection to establish..."
+		sleep 5
+		check_tunnel
+	else
+		echo "SSH tunnel is active."
+	fi
+}
+
+connect () {
+	# This also makes backspace work on devices that wants Ctrl-H
+	expect -c "
+		spawn -noecho proxychains4 -q -f $PROXYCHAINS_CONFIG telnet $IP
+		interact {
+			\177			{send \"\010\"}
+			\"\033\[3~\"	{send \"\177\"}
+		}
+	" | tstee $LOG_FILE
+}
+
+if [ -z "$1" ]; then
+	echo "Usage: `basename $0` <host>"
+	exit
+fi
+
+RANDOM_STRING=`date +%s | sha256sum | base64 | head -c 5`
+TIME=`date +"%Y-%m-%d-%H%M"`
+
+if [ ! -d "$LOG_DIRECTORY" ]; then
+    mkdir -p $LOG_DIRECTORY
+fi
+
+LOG_FILE=$LOG_DIRECTORY/$USER-$TIME
+LOG_FILE+=_$1_$RANDOM_STRING.log
+
+check_tunnel
+
+# Is the host argument an IP-address? Let's not bother with fancy regexps.
+if echo $1 | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+	IP=$1
+	connect
+else
+	for domain in "${DOMAINLIST[@]}"; do
+		# Resolve DNS name
+		if [ "$IP" == "" ]; then
+			IP=`proxychains4 -f $PROXYCHAINS_CONFIG -q dig @$REMOTEDNS A $1.${domain} +search +tcp +short`
+		else
+			# In some cases, dig will return several IP:s. Work around this by
+			# echoing them all and then connecting only to the first one.
+			echo $IP | grep '\ ' > /dev/null
+			if [ $? -eq 0 ]; then
+				echo "Hostname $1 resolves to multiple IP numbers: $IP"
+				exit
+			fi
+
+			IP=`echo $IP | sed 's/\ .*//'`
+			connect
+
+			exit
+		fi
+	done
+
+	if [ -z "$IP" ]; then
+		echo "Host unreachable."
+	fi
+fi
