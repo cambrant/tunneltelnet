@@ -1,4 +1,4 @@
-tunneltelnet 0.1
+tunneltelnet 0.2
 ================
 
 This script sets up an SSH tunnel and proxies a telnet session through that tunnel,
@@ -12,7 +12,8 @@ management network, since the /etc/resolv.conf of the remote server won't be use
 by the local dig.
 
 Nonstandard requirements:
-- expect
-- proxychains >= 4.2.0 (https://github.com/haad/proxychains)
+- python-pexpect
+- python-IPy
+- proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
 
 SSH should be set up with public key authentication to the remote server.
