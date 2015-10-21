@@ -15,7 +15,9 @@
 # - python-IPy
 # - proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
 
-# SSH should be set up with public key authentication to the remote server.
+# SSH should be set up with passwordless public key authentication to the
+# remote server, or more preferably with a password protected private key
+# using an SSH agent.
 
 import imp
 import sys
@@ -98,16 +100,21 @@ class TunnelTelnet():
         # Iterate through each domain and use 'dig' on the remote host to find
         # the IP address of the host.
         for domain in self.domainlist:
-            ip = subprocess.check_output(['proxychains4', '-f',
-                self.proxychains_config, '-q', 'dig', '@%s' % self.remotedns,
-                'A', '%s.%s' % (host, domain), '+search', '+tcp', '+short'])
+            try:
+                ip = subprocess.check_output(['proxychains4', '-f',
+                    self.proxychains_config, '-q', 'dig', '@%s' % self.remotedns,
+                    'A', '%s.%s' % (host, domain), '+search', '+tcp', '+short'])
+            except:
+                print 'Error: Could not resolve hostname through SSH tunnel.'
+                return False
+
             ip = ip.strip()
             if ip:
                 if self.is_ip(ip):
                     return ip
                 else:
-                    print 'Error! Something wrong with the returned IP \
-                        address:'
+                    print 'Error: The returned IP address does not match \
+                        expected format!'
                     print ip
                     return False
 
