@@ -53,23 +53,20 @@ class TunnelTelnet():
         self.proxychains_config = os.path.expanduser(config.proxychains_config)
         self.log_directory = os.path.expanduser(config.log_directory)
 
+        self.tries = 0
+
     def check_tunnel(self):
-        # For each running process, check if it's the SSH tunnel specified in
-        # the tunneltelnet configuration file and return True if it is.
+        # Check if the SSH tunnel specified in the tunneltelnet configuration
+        # file is running and return True if it is.
         # Otherwise, launch a new instance of the SSH tunnel and recursively use
         # this function again to make sure it is running.
-        pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
-
-        for pid in pids:
-            try:
-                cmdline = open(os.path.join('/proc', pid, 'cmdline'),
-                    'rb').read()
-                if 'ssh' in cmdline and self.proxyport in cmdline and \
-                        self.remoteserver in cmdline:
-                    print 'SSH tunnel is up.'
-                    return True
-            except IOError:
-                continue
+        cmdline = "ssh -ND %s %s" % (self.proxyport, self.remoteserver)
+        try:
+            pid = subprocess.check_output(["pgrep", "-f", cmdline])
+            print 'SSH tunnel is up.'
+            return True
+        except:
+            pass
 
         # Launch tunnel
         print 'SSH tunnel is down. Connecting to %s...' % self.remoteserver
@@ -79,9 +76,16 @@ class TunnelTelnet():
             stderr=open('/dev/null', 'w'))
 
         print 'Waiting for SSH connection to establish...'
-        time.sleep(5)
+        # Sleeping 10 seconds because the tunnel takes quite a while to be
+        # fully established.
+        time.sleep(10)
+
         # Recursively keep trying until the tunnel connection succeeds.
-        return self.check_tunnel()
+        if self.tries < 5:
+            return self.check_tunnel()
+        else:
+            print 'Unable to bring up SSH tunnel.'
+            sys.exit()
 
     def is_ip(self, ip):
         try:
