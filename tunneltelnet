@@ -13,7 +13,7 @@
 # Nonstandard requirements:
 # - python-pexpect >= 3.1
 # - python-IPy >= 0.81
-# - proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
+# - proxychains-ng >= 4.10 (https://github.com/rofl0r/proxychains-ng)
 
 # SSH should be set up with passwordless public key authentication to the
 # remote server, or more preferably with a password protected private key
