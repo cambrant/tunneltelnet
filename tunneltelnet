@@ -11,8 +11,8 @@
 # of the remote server won't be used by the local dig.
 
 # Nonstandard requirements:
-# - python-pexpect
-# - python-IPy
+# - python-pexpect >= 3.1
+# - python-IPy >= 0.81
 # - proxychains >= 4.2.0 (https://github.com/rofl0r/proxychains-ng)
 
 # SSH should be set up with passwordless public key authentication to the
@@ -27,6 +27,7 @@ import subprocess
 import pexpect
 from IPy import IP
 
+# TODO: Logging to file is not working at the moment. Needs to be fixed!
 # Workaround to import tstee without it being a proper Python module.
 # imp.load_source('tstee', './tstee')
 # import tstee
@@ -136,7 +137,7 @@ class TunnelTelnet():
 
     def connect(self, ip):
         p = pexpect.spawn('proxychains4 -q -f %s telnet %s' %
-                (self.proxychains_config, ip))
+            (self.proxychains_config, ip))
         p.timeout = 30
 
         if self.username and self.password:
