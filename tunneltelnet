@@ -119,8 +119,7 @@ class TunnelTelnet():
                 if self.is_ip(ip):
                     return ip
                 else:
-                    print 'Error: The returned IP address does not match \
-                        expected format!'
+                    print 'Error: The IP address does not match expected format!'
                     print ip
                     return False
 
