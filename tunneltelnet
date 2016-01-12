@@ -54,7 +54,7 @@ class TunnelTelnet():
         self.proxychains_config = os.path.expanduser(config.proxychains_config)
         self.log_directory = os.path.expanduser(config.log_directory)
 
-        self.cmdline = "ssh -ND %s %s" % (self.proxyport, self.remoteserver)
+        self.cmdline = 'ssh -ND %s %s' % (self.proxyport, self.remoteserver)
 
         self.tries = 0
 
@@ -64,7 +64,7 @@ class TunnelTelnet():
         # Otherwise, launch a new instance of the SSH tunnel and recursively use
         # this function again to make sure it is running.
         try:
-            pid = subprocess.check_output(["pgrep", "-f", self.cmdline])
+            pid = subprocess.check_output(['pgrep', '-f', self.cmdline])
             print 'SSH tunnel is up.'
             return True
         except:
