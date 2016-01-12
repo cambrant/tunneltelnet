@@ -83,6 +83,7 @@ class TunnelTelnet():
 
         # Recursively keep trying until the tunnel connection succeeds.
         if self.tries < 5:
+            self.tries += 1
             return self.check_tunnel()
         else:
             print 'Unable to bring up SSH tunnel.'
