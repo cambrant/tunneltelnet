@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# This works for anyone having a ~/.bin/, but is mostly made to suit my environment.
-# For now, you should install this manually instead.
+# This works for anyone having a ~/.bin/ in their path, but is mostly made to
+# suit my environment. For now, you should install this manually instead.
 
 cp tunneltelnet ~/.bin/tunneltelnet
 cp tstee ~/.bin/tstee
