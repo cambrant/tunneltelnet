@@ -54,6 +54,8 @@ class TunnelTelnet():
         self.proxychains_config = os.path.expanduser(config.proxychains_config)
         self.log_directory = os.path.expanduser(config.log_directory)
 
+        self.cmdline = "ssh -ND %s %s" % (self.proxyport, self.remoteserver)
+
         self.tries = 0
 
     def check_tunnel(self):
@@ -61,9 +63,8 @@ class TunnelTelnet():
         # file is running and return True if it is.
         # Otherwise, launch a new instance of the SSH tunnel and recursively use
         # this function again to make sure it is running.
-        cmdline = "ssh -ND %s %s" % (self.proxyport, self.remoteserver)
         try:
-            pid = subprocess.check_output(["pgrep", "-f", cmdline])
+            pid = subprocess.check_output(["pgrep", "-f", self.cmdline])
             print 'SSH tunnel is up.'
             return True
         except:
@@ -72,9 +73,8 @@ class TunnelTelnet():
         # Launch tunnel
         print 'SSH tunnel is down. Connecting to %s...' % self.remoteserver
 
-        subprocess.Popen(['nohup', 'ssh', '-ND', self.proxyport,
-            self.remoteserver], stdout=open('/dev/null', 'w'),
-            stderr=open('/dev/null', 'w'))
+        subprocess.Popen(['nohup', self.cmdline.split()],
+            stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
 
         print 'Waiting for SSH connection to establish...'
         # Sleeping 10 seconds because the tunnel takes quite a while to be
