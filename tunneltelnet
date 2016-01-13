@@ -82,7 +82,7 @@ class TunnelTelnet():
         time.sleep(10)
 
         # Recursively keep trying until the tunnel connection succeeds.
-        if self.tries < 5:
+        if self.tries < 4:
             self.tries += 1
             return self.check_tunnel()
         else:
