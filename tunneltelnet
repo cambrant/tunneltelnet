@@ -64,7 +64,7 @@ class TunnelTelnet():
         # Otherwise, launch a new instance of the SSH tunnel and recursively use
         # this function again to make sure it is running.
         try:
-            pid = subprocess.check_output(['pgrep', '-f', self.cmdline])
+            pid = subprocess.check_output(['pgrep', '-f', '%s' % self.cmdline])
             print 'SSH tunnel is up.'
             return True
         except:
@@ -73,7 +73,7 @@ class TunnelTelnet():
         # Launch tunnel
         print 'SSH tunnel is down. Connecting to %s...' % self.remoteserver
 
-        subprocess.Popen(['nohup', self.cmdline.split()],
+        proc = subprocess.Popen(('nohup ' + self.cmdline).split(),
             stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
 
         print 'Waiting for SSH connection to establish...'
