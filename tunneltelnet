@@ -193,7 +193,7 @@ class TunnelTelnet():
         # Set up logging for the telnet session.
         randnum = str(random.randrange(10000,99999,1))
         fn = datetime.now().strftime('%Y-%m-%d_%H%M_') + self.host + '_' + randnum
-        fout = file(self.log_directory + '/%s.log' % fn, "w")
+        fout = open(self.log_directory + '/%s.log' % fn, "w")
         p.logfile_read = fout
 
         # Replace pexpect log method with the timestamping self.log_method
