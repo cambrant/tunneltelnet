@@ -26,6 +26,9 @@ import time
 import subprocess
 import pexpect
 from IPy import IP
+from datetime import datetime
+import random
+import new
 
 # TODO: Logging to file is not working at the moment. Needs to be fixed!
 # Workaround to import tstee without it being a proper Python module.
@@ -104,6 +107,8 @@ class TunnelTelnet():
             return False
 
     def resolve(self, host):
+        self.host = host
+
         # Resolve the passed hostname into an IP address, using the DNS tools
         # on the remote server to do it.
         if self.is_ip(host):
@@ -148,10 +153,43 @@ class TunnelTelnet():
     def filter_output_keys(self, key):
         return key
 
+
     def connect(self, ip):
+        def log_method(self, s, direction):
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+
+            of = None
+            if self.logfile is not None:
+                of = self.logfile
+            second_log = self.logfile_send if (direction=='send') else self.logfile_read
+            if second_log is not None:
+                of = second_log
+            if self.logfile is None and second_log is None:
+                return False
+
+            for c in s:
+                if c in [chr(8), '\r']:
+                    pass
+                else:
+                    second_log.write(c)
+
+                if c == '\n':
+                    # If a newline was written, write a new timestamp to the output file.
+                    of.write(timestamp + ': ')
+
+            second_log.flush()
+
+        randnum = str(random.randrange(10000,99999,1))
+        fn = datetime.now().strftime('%Y-%m-%d_%H%M_') + self.host + '_' + randnum
+        fout = file(self.log_directory + '/%s.log' % fn, "w")
         p = pexpect.spawn('proxychains4 -q -f %s telnet %s' %
             (self.proxychains_config, ip))
+        p.logfile_read = fout
         p.timeout = 30
+
+        # Replace pexpect log method with the timestamping self.log_method
+        p._log = new.instancemethod(log_method, p, None)
 
         if self.username and self.password:
             try:
