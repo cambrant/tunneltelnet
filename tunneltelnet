@@ -155,9 +155,13 @@ class TunnelTelnet():
 
 
     def connect(self, ip):
+        # Replacement for pexpect.SpawnBase._log(), which logs each byte sent
+        # from the telnet server except for the carriage returns ('\r') and
+        # backspaces, which are simply not output into the log.
+        # Newline characters are output, but are immediately followed by a
+        # timestamp.
         def log_method(self, s, direction):
             from datetime import datetime
-            timestamp = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
 
             of = None
             if self.logfile is not None:
@@ -176,17 +180,21 @@ class TunnelTelnet():
 
                 if c == '\n':
                     # If a newline was written, write a new timestamp to the output file.
+                    timestamp = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
                     of.write(timestamp + ': ')
 
             second_log.flush()
 
+        # Spawn telnet through the SSH tunnel.
+        p = pexpect.spawn('proxychains4 -q -f %s telnet %s' %
+            (self.proxychains_config, ip))
+        p.timeout = 30
+
+        # Set up logging for the telnet session.
         randnum = str(random.randrange(10000,99999,1))
         fn = datetime.now().strftime('%Y-%m-%d_%H%M_') + self.host + '_' + randnum
         fout = file(self.log_directory + '/%s.log' % fn, "w")
-        p = pexpect.spawn('proxychains4 -q -f %s telnet %s' %
-            (self.proxychains_config, ip))
         p.logfile_read = fout
-        p.timeout = 30
 
         # Replace pexpect log method with the timestamping self.log_method
         p._log = new.instancemethod(log_method, p, None)
