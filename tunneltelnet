@@ -89,6 +89,13 @@ class TunnelTelnet():
             print 'Unable to bring up SSH tunnel.'
             sys.exit()
 
+    def reset_tunnel(self):
+        subprocess.Popen(['pkill', '-f', '"%s"' % self.cmdline])
+        if self.check_tunnel():
+            return True
+        else:
+            return False
+
     def is_ip(self, ip):
         try:
             IP(ip)
@@ -111,8 +118,14 @@ class TunnelTelnet():
                     self.proxychains_config, '-q', 'dig', '@%s' % self.remotedns,
                     'A', '%s.%s' % (host, domain), '+search', '+tcp', '+short'])
             except:
-                print 'Error: Could not resolve hostname through SSH tunnel.'
-                return False
+                # If dig fails, reset the tunnel and return False if that fails,
+                # otherwise recursively try to resolve again.
+                print 'Tunnel running, but not working. Resetting...'
+                if not self.reset_tunnel():
+                    print 'Error: Could not resolve hostname through SSH tunnel.'
+                    return False
+                else:
+                    return self.resolve(host)
 
             ip = ip.strip()
             if ip:
