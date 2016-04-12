@@ -30,12 +30,6 @@ from datetime import datetime
 import random
 import new
 
-# TODO: Logging to file is not working at the moment. Needs to be fixed!
-# Workaround to import tstee without it being a proper Python module.
-# imp.load_source('tstee', './tstee')
-# import tstee
-
-
 class TunnelTelnet():
     def __init__(self):
         self.username = None
