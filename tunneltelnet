@@ -189,8 +189,11 @@ class TunnelTelnet():
                 p.close()
                 sys.exit()
 
-        p.interact(input_filter=self.filter_input_keys,
-            output_filter=self.filter_output_keys)
+        try:
+            p.interact(input_filter=self.filter_input_keys,
+                output_filter=self.filter_output_keys)
+        except OSError:
+            pass
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
