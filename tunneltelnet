@@ -18,6 +18,17 @@ class TunnelTelnet():
         self.CONFIG_FILE = os.path.expanduser('~/.tunneltelnet')
         self.read_config()
 
+        if not self.check_proxychains():
+            raise OSError('proxychains4 is not available!')
+
+    def check_proxychains(self):
+        try:
+            subprocess.check_output(['proxychains4'])
+        except OSError:
+            return False
+        except subprocess.CalledProcessError:
+            return True
+
     def read_config(self):
         # Load the Python formatted config file and import its data.
         if not os.path.isfile(self.CONFIG_FILE):
