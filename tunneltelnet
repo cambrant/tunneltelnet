@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from __future__ import (absolute_import, division,
+    print_function, unicode_literals)
+
 import imp
 import sys
 import os
@@ -9,7 +12,7 @@ import pexpect
 from IPy import IP
 from datetime import datetime
 import random
-import new
+import types
 
 class TunnelTelnet():
     def __init__(self):
@@ -54,18 +57,18 @@ class TunnelTelnet():
         # this function again to make sure it is running.
         try:
             pid = subprocess.check_output(['pgrep', '-f', '%s' % self.cmdline])
-            print 'SSH tunnel is up.'
+            print('SSH tunnel is up.')
             return True
         except:
             pass
 
         # Launch tunnel
-        print 'SSH tunnel is down. Connecting to %s...' % self.remoteserver
+        print('SSH tunnel is down. Connecting to %s...' % self.remoteserver)
 
         proc = subprocess.Popen(('nohup ' + self.cmdline).split(),
             stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
 
-        print 'Waiting for SSH connection to establish...'
+        print('Waiting for SSH connection to establish...')
         # Sleeping 10 seconds because the tunnel takes quite a while to be
         # fully established.
         time.sleep(10)
@@ -75,7 +78,7 @@ class TunnelTelnet():
             self.tries += 1
             return self.check_tunnel()
         else:
-            print 'Unable to bring up SSH tunnel.'
+            print('Unable to bring up SSH tunnel.')
             sys.exit()
 
     def reset_tunnel(self):
@@ -108,12 +111,13 @@ class TunnelTelnet():
                 ip = subprocess.check_output(['proxychains4', '-f',
                     self.proxychains_config, '-q', 'dig', '@%s' % self.remotedns,
                     'A', '%s.%s' % (host, domain), '+search', '+tcp', '+short'])
+                ip = ip.decode()
             except:
                 # If dig fails, reset the tunnel and return False if that fails,
                 # otherwise recursively try to resolve again.
-                print 'Tunnel running, but not working. Resetting...'
+                print('Tunnel running, but not working. Resetting...')
                 if not self.reset_tunnel():
-                    print 'Error: Could not resolve hostname through SSH tunnel.'
+                    print('Error: Could not resolve hostname through SSH tunnel.')
                     return False
                 else:
                     return self.resolve(host)
@@ -123,16 +127,15 @@ class TunnelTelnet():
                 if self.is_ip(ip):
                     return ip
                 else:
-                    print 'Error: The IP address does not match expected format!'
-                    print ip
+                    print('Error: The IP address does not match expected format!')
+                    print(ip)
                     return False
 
     def filter_input_keys(self, key):
         # Send CTRL-h instead of <backspace>, to make backspacing in
         # certain CLIs work better.
-        if len(key) == 1:
-            if ord(key) == 127:
-                key = chr(8)
+        if key == b'\x7f':
+            return b'\x08'
 
         return key
 
@@ -149,6 +152,7 @@ class TunnelTelnet():
         def log_method(self, s, direction):
             from datetime import datetime
 
+            s = s.decode()
             of = None
             if self.logfile is not None:
                 of = self.logfile
@@ -179,14 +183,11 @@ class TunnelTelnet():
         # Set up logging for the telnet session.
         randnum = str(random.randrange(10000,99999,1))
         fn = datetime.now().strftime('%Y-%m-%d_%H%M_') + self.host + '_' + randnum
-        if not os.path.exists(self.log_directory):
-            os.makedirs(self.log_directory)
         fout = open(self.log_directory + '/%s.log' % fn, "w")
-
         p.logfile_read = fout
 
         # Replace pexpect log method with the timestamping self.log_method
-        p._log = new.instancemethod(log_method, p, None)
+        p._log = types.MethodType(log_method, p)
 
         if self.username and self.password:
             try:
@@ -199,7 +200,7 @@ class TunnelTelnet():
                 msg = p.before.split('\r\n')
                 if len(msg) > 1:
                     for line in msg:
-                        print line
+                        print(line)
                 p.close()
                 sys.exit()
 
@@ -211,7 +212,7 @@ class TunnelTelnet():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print 'Usage: %s <host> [username] [password]' % sys.argv[0]
+        print('Usage: %s <host> [username] [password]' % sys.argv[0])
         sys.exit()
 
     tt = TunnelTelnet()
@@ -225,4 +226,4 @@ if __name__ == '__main__':
     if ip:
         tt.connect(ip)
     else:
-        print 'Could not find host %s.' % sys.argv[1]
+        print('Could not find host %s.' % sys.argv[1])
